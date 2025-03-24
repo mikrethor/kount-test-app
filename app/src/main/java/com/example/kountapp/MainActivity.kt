@@ -16,7 +16,9 @@ import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.kountapp.databinding.ActivityMainBinding
 import com.google.android.material.snackbar.Snackbar
+import com.kount.api.DataCollector
 import com.kount.api.analytics.AnalyticsCollector
+import com.kount.api.analytics.utils.Utils
 import java.util.UUID
 
 private const val MY_UUID = "my-uuid"
@@ -40,7 +42,7 @@ class MainActivity : AppCompatActivity() {
 
         }
         // REQUIRED SECTION
-        AnalyticsCollector.setMerchantId(666)
+        AnalyticsCollector.setMerchantId("666")
         // END REQUIRED SECTION
 
         //This turns the alpha collections on(true)/off(false). It defaults to true.
@@ -61,12 +63,10 @@ class MainActivity : AppCompatActivity() {
 
 
         //Request location permission for Android 6.0 & above
-
-        AnalyticsCollector.collectDeviceDataForSession(this)
-
         AnalyticsCollector.trackLoginEvent(true)
         AnalyticsCollector.collectAnalyticsForScreen(true)
-        AnalyticsCollector.collectDeviceDataForSession(this);
+
+        AnalyticsCollector.collectDeviceDataForSession(this, onSuccess(), onError())
         AnalyticsCollector.collectBatteryInfo(true)
 
         val sessionId = AnalyticsCollector.getSessionId()
@@ -93,6 +93,16 @@ class MainActivity : AppCompatActivity() {
                 .setAction("Action", null)
                 .setAnchorView(R.id.fab).show()
         }
+    }
+
+    private fun onError(): (String?, DataCollector.Error) -> Unit = { sessionId, error ->
+        Log.d("TAG", " failed with sessionId $error, $sessionId")
+        Log.d("TAG", "DDC STATUS is :" + AnalyticsCollector.getCollectionStatus()?.name)
+    }
+
+    private fun onSuccess(): (String?) -> Unit = { sessionId ->
+        Log.d("TAG", "success completed with sessionId $sessionId")
+        Log.d("TAG", "DDC STATUS is :" + AnalyticsCollector.getCollectionStatus()?.name)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -123,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         if (requestCode == AnalyticsCollector.REQUEST_PERMISSION_LOCATION) {
-            AnalyticsCollector.collectDeviceDataForSession(this)
+            AnalyticsCollector.collectDeviceDataForSession(this, onSuccess(), onError())
         }
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
@@ -134,7 +144,7 @@ class MainActivity : AppCompatActivity() {
     ) { permissions ->
         val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
         if (granted) {
-            AnalyticsCollector.collectDeviceDataForSession(this)
+            AnalyticsCollector.collectDeviceDataForSession(this, onSuccess(), onError())
         } else {
             // Permission refusée, gérer le cas
             println("erreur")
@@ -159,7 +169,7 @@ class MainActivity : AppCompatActivity() {
                 this, Manifest.permission.ACCESS_FINE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            AnalyticsCollector.collectDeviceDataForSession(this)
+            AnalyticsCollector.collectDeviceDataForSession(this, onSuccess(), onError())
         } else {
             requestLocationPermission()
         }
